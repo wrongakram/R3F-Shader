@@ -1,9 +1,19 @@
 import * as THREE from "three";
-import React, { useRef, Suspense } from "react";
-import { Canvas, extend, useFrame, useLoader } from "@react-three/fiber";
+import React, { useRef, Suspense, useState, useEffect } from "react";
+import {
+  Canvas,
+  extend,
+  useFrame,
+  useLoader,
+  useThree,
+} from "@react-three/fiber";
 import { shaderMaterial } from "@react-three/drei";
 import glsl from "babel-plugin-glsl/macro";
 import "./App.css";
+import Image from "../src/webgl_2.png";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import Mp3Url from "../src/Tempeh.mp3";
+import Footer from "./Footer";
 
 const WaveShaderMaterial = shaderMaterial(
   // Uniform
@@ -56,15 +66,43 @@ const WaveShaderMaterial = shaderMaterial(
   `
 );
 
-extend({ WaveShaderMaterial });
+extend({ WaveShaderMaterial, OrbitControls });
+
+const Controls = () => {
+  const { camera, gl } = useThree();
+  const ref = useRef();
+  useFrame(() => ref.current.update());
+  return (
+    <orbitControls
+      ref={ref}
+      target={[0, 0, 0]}
+      enableDamping
+      args={[camera, gl.domElement]}
+    />
+  );
+};
+
+function Sound({ url }) {
+  const sound = useRef();
+  const { camera } = useThree();
+  const [listener] = useState(() => new THREE.AudioListener());
+  const buffer = useLoader(THREE.AudioLoader, url);
+  useEffect(() => {
+    sound.current.setBuffer(buffer);
+    sound.current.setRefDistance(1);
+    sound.current.setLoop(true);
+    sound.current.play();
+    camera.add(listener);
+    return () => camera.remove(listener);
+  }, []);
+  return <positionalAudio ref={sound} args={[listener]} />;
+}
 
 const Wave = () => {
   const ref = useRef();
   useFrame(({ clock }) => (ref.current.uTime = clock.getElapsedTime()));
 
-  const [image] = useLoader(THREE.TextureLoader, [
-    "https://images.unsplash.com/photo-1604011092346-0b4346ed714e?ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&auto=format&fit=crop&w=1534&q=80",
-  ]);
+  const [image] = useLoader(THREE.TextureLoader, [`${Image}`]);
 
   return (
     <mesh>
@@ -74,21 +112,31 @@ const Wave = () => {
   );
 };
 
+const Button = () => {
+  return <button />;
+};
+
 const Scene = () => {
   return (
     <Canvas camera={{ fov: 12, position: [0, 0, 5] }}>
       <Suspense fallback={null}>
         <Wave />
+        <Sound url={Mp3Url} />
       </Suspense>
+      <Controls />
     </Canvas>
   );
 };
 
-const App = () => {
+const App = (sound) => {
+  console.log(sound);
   return (
     <>
-      <h1>POMADA MODELADORA</h1>
+      <h1 class="fade-in">RAINY LEAVES</h1>
+
+      {/* <button onClick={console.log(sound.current.pause())} /> */}
       <Scene />
+      <Footer />
     </>
   );
 };
